@@ -4,6 +4,6 @@
 - Open the index.html file in your browser.
 - Then open your terminal and type
 
-bash``
+```bash
 node backend/server.js
-``
+```
