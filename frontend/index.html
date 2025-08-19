@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Stock Management with Database</title>
+  <title>Stock Management System</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f4f6f8; }
     h1 { text-align: center; }
@@ -13,10 +13,11 @@
     th { background: #007bff; color: white; }
     .delete-btn { background: red; color: white; padding: 5px 10px; border: none; cursor: pointer; }
     .update-btn { background: orange; color: white; padding: 5px 10px; border: none; cursor: pointer; }
+    .stock-btn { background: green; color: white; padding: 5px 10px; border: none; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1> Stock Management</h1>
+  <h1> Stock Management System</h1>
 
   <!-- Form to add product -->
   <form id="productForm">
@@ -45,7 +46,7 @@
     const productForm = document.getElementById("productForm");
     const productTable = document.getElementById("productTable");
 
-    // Fetch products from backend
+    // Fetch products
     async function fetchProducts() {
       const res = await fetch(API_URL);
       const products = await res.json();
@@ -63,7 +64,9 @@
           <td>${p.price.toFixed(2)}</td>
           <td>${(p.quantity * p.price).toFixed(2)}</td>
           <td>
-            <button class="update-btn" onclick="updateProduct(${p.id}, ${p.quantity}, ${p.price})">Adjust</button>
+            <button class="update-btn" onclick="updateProduct(${p.id}, ${p.quantity}, ${p.price})">Update</button>
+            <button class="stock-btn" onclick="stockIn(${p.id})">Stock In</button>
+            <button class="stock-btn" onclick="stockOut(${p.id})">Stock Out</button>
             <button class="delete-btn" onclick="deleteProduct(${p.id})">Delete</button>
           </td>
         `;
@@ -94,7 +97,7 @@
       fetchProducts();
     }
 
-    // Update product
+    // Update product (quantity & price)
     async function updateProduct(id, currentQuantity, currentPrice) {
       const newQuantity = prompt("Enter new quantity:", currentQuantity);
       const newPrice = prompt("Enter new price:", currentPrice);
@@ -103,10 +106,47 @@
         await fetch(`${API_URL}/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            quantity: newQuantity,
-            price: newPrice
-          })
+          body: JSON.stringify({ quantity: newQuantity, price: newPrice })
+        });
+        fetchProducts();
+      }
+    }
+
+    // Stock In
+    async function stockIn(id) {
+      const amount = prompt("Enter quantity to add:");
+      if (amount !== null && !isNaN(amount) && parseInt(amount) > 0) {
+        await fetch(`${API_URL}/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stockChange: parseInt(amount) })
+        });
+        fetchProducts();
+      } else if (amount !== null) {
+        alert(" Quantity must be a positive number!");
+      }
+    }
+
+    // Stock Out
+    async function stockOut(id) {
+      // Get current quantity from table
+      const row = Array.from(productTable.rows).find(r => 
+        r.querySelector("button.delete-btn").getAttribute("onclick").includes(id)
+      );
+      const currentQuantity = parseInt(row.cells[1].innerText);
+
+      const amount = prompt(`Enter quantity to remove (current stock: ${currentQuantity}):`);
+      if (amount !== null && !isNaN(amount)) {
+        const removeQty = parseInt(amount);
+        if (removeQty > currentQuantity) {
+          alert(" Cannot remove more than current stock!");
+          return;
+        }
+
+        await fetch(`${API_URL}/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stockChange: -removeQty })
         });
         fetchProducts();
       }
@@ -115,6 +155,8 @@
     // Make functions global
     window.deleteProduct = deleteProduct;
     window.updateProduct = updateProduct;
+    window.stockIn = stockIn;
+    window.stockOut = stockOut;
 
     // Load products on page load
     fetchProducts();
