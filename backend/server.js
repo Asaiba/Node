@@ -55,7 +55,7 @@ app.delete("/products/:id", (req, res) => {
 });
 
 
-// Update product OR Stock In/Out
+// Update product OR Stock change
 
 app.put("/products/:id", (req, res) => {
   const { quantity, price, stockChange } = req.body;
