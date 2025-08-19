@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stock Management with Database</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f4f6f8; }
+    h1 { text-align: center; }
+    form { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+    input, button { padding: 8px; margin: 5px; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: 10px; text-align: center; border: 1px solid #ddd; }
+    th { background: #007bff; color: white; }
+    .delete-btn { background: red; color: white; padding: 5px 10px; border: none; cursor: pointer; }
+    .update-btn { background: orange; color: white; padding: 5px 10px; border: none; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1> Stock Management</h1>
+
+  <!-- Form to add product -->
+  <form id="productForm">
+    <input type="text" id="name" placeholder="Product Name" required>
+    <input type="number" id="quantity" placeholder="Quantity" required>
+    <input type="number" id="price" placeholder="Price" required step="0.01">
+    <button type="submit">Add Product</button>
+  </form>
+
+  <!-- Table to display stock -->
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Quantity</th>
+        <th>Price ($)</th>
+        <th>Total ($)</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="productTable"></tbody>
+  </table>
+
+  <script>
+    const API_URL = "http://localhost:3000/products";
+    const productForm = document.getElementById("productForm");
+    const productTable = document.getElementById("productTable");
+
+    // Fetch products from backend
+    async function fetchProducts() {
+      const res = await fetch(API_URL);
+      const products = await res.json();
+      renderProducts(products);
+    }
+
+    // Render products
+    function renderProducts(products) {
+      productTable.innerHTML = "";
+      products.forEach(p => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${p.name}</td>
+          <td>${p.quantity}</td>
+          <td>${p.price.toFixed(2)}</td>
+          <td>${(p.quantity * p.price).toFixed(2)}</td>
+          <td>
+            <button class="update-btn" onclick="updateProduct(${p.id}, ${p.quantity}, ${p.price})">Adjust</button>
+            <button class="delete-btn" onclick="deleteProduct(${p.id})">Delete</button>
+          </td>
+        `;
+        productTable.appendChild(row);
+      });
+    }
+
+    // Add product
+    productForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const quantity = document.getElementById("quantity").value;
+      const price = document.getElementById("price").value;
+
+      await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, quantity, price })
+      });
+
+      productForm.reset();
+      fetchProducts();
+    });
+
+    // Delete product
+    async function deleteProduct(id) {
+      await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      fetchProducts();
+    }
+
+    // Update product
+    async function updateProduct(id, currentQuantity, currentPrice) {
+      const newQuantity = prompt("Enter new quantity:", currentQuantity);
+      const newPrice = prompt("Enter new price:", currentPrice);
+
+      if (newQuantity !== null && newPrice !== null) {
+        await fetch(`${API_URL}/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            quantity: newQuantity,
+            price: newPrice
+          })
+        });
+        fetchProducts();
+      }
+    }
+
+    // Make functions global
+    window.deleteProduct = deleteProduct;
+    window.updateProduct = updateProduct;
+
+    // Load products on page load
+    fetchProducts();
+  </script>
+</body>
+</html>
